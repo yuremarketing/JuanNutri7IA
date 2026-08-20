@@ -7,16 +7,35 @@ sincronizado com um Issue + quadro Kanban (GitHub Projects) deste repositório.
 Como funciona:
 
 1. Você roda `run.sh` localmente, apontando para uma tarefa (texto livre) ou
-   um issue já existente.
-2. A cada turno, um dos dois agentes recebe a transcrição da conversa até
-   ali e o próximo passo: analisar, implementar, corrigir, responder ao
-   outro. Ele pode editar arquivos e commitar de verdade neste repo.
+   um issue já existente. Isso cria (ou reusa) uma branch de integração
+   `agent-loop/issue-<n>` e dois **git worktrees isolados**, um para cada
+   agente:
+
+   ```
+   repo/                          (checkout: agent-loop/issue-<n>)
+   ├── .worktrees/
+   │   ├── gemini/   → branch agent/gemini  (só o Gemini escreve aqui)
+   │   └── claude/   → branch agent/claude  (só o Claude escreve aqui)
+   ```
+
+2. A cada turno: o worktree do agente da vez é sincronizado com a branch de
+   integração (`git reset --hard`), ele roda **dentro do próprio worktree**
+   com a transcrição da conversa até ali, edita arquivos e comita de
+   verdade. No fim do turno, o orquestrador faz `git merge --no-ff` do
+   commit dele para dentro da branch de integração — só então o próximo
+   agente enxerga essa mudança.
 3. Cada turno é impresso no seu terminal em tempo real e (opcionalmente)
    postado como comentário no Issue, para ficar registrado no GitHub.
 4. O item do Issue se move automaticamente no Kanban: `Todo → In Progress`
    ao começar, `→ Done` quando um dos agentes sinalizar `STATUS: DONE`.
 5. O loop para quando um agente sinaliza `STATUS: DONE` ou quando atinge
-   `MAX_TURNS` (padrão 20).
+   `MAX_TURNS` (padrão 20). O resultado fica na branch de integração
+   `agent-loop/issue-<n>`, pronta pra você revisar e abrir PR.
+
+Por que worktrees separados em vez de um diretório só: cada agente edita
+arquivos de forma isolada (sem risco de um pisar em cima do outro), e o
+merge por turno deixa um histórico de git limpo mostrando exatamente o que
+cada um contribuiu — em vez de um commit misturado dos dois.
 
 ## Pré-requisitos (na sua máquina, não no sandbox remoto)
 
@@ -78,6 +97,15 @@ STATUS: DONE
 A transcrição completa também fica salva em
 `logs/agent-loop/loop-<timestamp>.md` (pasta ignorada pelo git).
 
+Ao final, revise o resultado e abra o PR você mesmo (ou peça pra um dos
+agentes abrir no último turno):
+
+```bash
+git log --oneline agent-loop/issue-42
+git diff main...agent-loop/issue-42
+gh pr create -R yuremarketing/JuanNutri7IA --base main --head agent-loop/issue-42
+```
+
 ## Variáveis de configuração
 
 | Variável | Padrão | Descrição |
@@ -85,6 +113,7 @@ A transcrição completa também fica salva em
 | `REPO` | `yuremarketing/JuanNutri7IA` | Repositório `owner/name` |
 | `TASK` | — | Descrição da tarefa (cria um Issue novo) |
 | `ISSUE_NUMBER` | — | Reusa um Issue existente em vez de criar um |
+| `INTEGRATION_BRANCH` | `agent-loop/issue-<n>` | Branch onde os turnos são mergeados |
 | `FIRST_AGENT` | `gemini` | Quem começa: `gemini` ou `claude` |
 | `MAX_TURNS` | `20` | Limite de turnos antes de parar |
 | `PROJECT_NUMBER` | — | Número do GitHub Project (kanban); vazio desativa o sync |
@@ -95,10 +124,18 @@ A transcrição completa também fica salva em
 
 ## Avisos
 
-- `AUTO_PUSH=1` empurra commits para o remoto automaticamente a cada turno
-  — só ative se você já confia no loop rodando sem revisão manual antes do push.
+- `AUTO_PUSH=1` empurra a branch de integração para o remoto automaticamente
+  após cada merge — só ative se você já confia no loop rodando sem revisão
+  manual antes do push.
 - `run.sh` roda os dois CLIs com permissão para editar arquivos e rodar
   comandos no seu ambiente local (via `-y` no Gemini e
-  `--permission-mode acceptEdits` no Claude). Rode em um diretório/branch
-  que você não se importa de ver alterado, e revise o `git diff` /
-  `git log` sempre que quiser antes de dar push manual.
+  `--permission-mode acceptEdits` no Claude), mas cada um só dentro do
+  próprio worktree (`.worktrees/gemini` ou `.worktrees/claude`) — nenhum
+  dos dois toca no diretório principal do repo diretamente. Ainda assim,
+  revise o `git diff` / `git log` da branch de integração antes de dar
+  push manual pro `main`.
+- O script exige que `$REPO_ROOT` esteja limpo (`git status` sem pendências)
+  antes de começar, já que ele faz `git checkout` da branch de integração
+  ali. Se você tiver trabalho em andamento, commit ou stash antes de rodar.
+- Pra limpar os worktrees depois que a tarefa terminar:
+  `git worktree remove .worktrees/gemini --force && git worktree remove .worktrees/claude --force`.
