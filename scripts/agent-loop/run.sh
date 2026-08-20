@@ -2,7 +2,8 @@
 #
 # Loop de turnos entre Claude Code (claude) e Gemini CLI (gemini).
 # Roda 100% local, na sua máquina — este terminal É a "sala de reunião"
-# onde você acompanha a conversa dos dois agentes em tempo real.
+# onde você acompanha a conversa dos dois agentes em tempo real, e (no modo
+# interativo, padrão) também pode digitar algo entre um turno e outro.
 #
 # Cada agente trabalha isolado no seu próprio git worktree
 # (.worktrees/gemini e .worktrees/claude), numa branch própria. Depois de
@@ -40,8 +41,11 @@ GEMINI_BIN="${GEMINI_BIN:-gemini}"
 CLAUDE_PERMISSION_MODE="${CLAUDE_PERMISSION_MODE:-acceptEdits}"
 POST_TO_ISSUE="${POST_TO_ISSUE:-1}"            # 1 = comenta cada turno no issue
 AUTO_PUSH="${AUTO_PUSH:-0}"                    # 1 = dá git push da branch de integração após cada merge
+INTERACTIVE="${INTERACTIVE:-1}"                # 1 = pausa entre turnos pra você digitar algo pros agentes
 LOG_DIR="${LOG_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)/logs/agent-loop}"
 # ----------------------------------------------------------------------
+
+[ -t 0 ] || INTERACTIVE=0   # sem terminal interativo (ex: CI), desliga automaticamente
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$REPO_ROOT" || exit 1
@@ -204,6 +208,7 @@ Regras:
 --- Transcrição até agora (turno ${turn}) ---
 ${tail:-"(este é o primeiro turno — não há histórico ainda)"}
 --- Fim da transcrição ---
+$(if [ -n "${HUMAN_NOTE:-}" ]; then printf '\n--- Observação do humano acompanhando esta conversa ---\n%s\n--- Fim da observação ---\n' "$HUMAN_NOTE"; fi)
 
 Sua vez, ${speaker^^}:
 PROMPT
@@ -237,6 +242,11 @@ log ""
 speaker="$FIRST_AGENT"
 done_flag=0
 turn=1
+HUMAN_NOTE=""
+
+if [ "$INTERACTIVE" = "1" ]; then
+  log "(Modo interativo ligado: entre cada turno você pode digitar algo pros agentes, ou só apertar Enter pra deixar o loop seguir.)"
+fi
 
 while [ "$turn" -le "$MAX_TURNS" ]; do
   other="claude"; [ "$speaker" = "claude" ] && other="gemini"
@@ -264,6 +274,15 @@ while [ "$turn" -le "$MAX_TURNS" ]; do
   if echo "$output" | grep -q "STATUS: DONE"; then
     done_flag=1
     break
+  fi
+
+  HUMAN_NOTE=""
+  if [ "$INTERACTIVE" = "1" ]; then
+    printf '\n💬 Sua vez — Enter pra deixar %s continuar, ou escreva algo pro próximo turno:\n> ' "${other^}"
+    IFS= read -r HUMAN_NOTE || HUMAN_NOTE=""
+    if [ -n "$HUMAN_NOTE" ]; then
+      log "> 👤 Você: $HUMAN_NOTE"
+    fi
   fi
 
   speaker="$other"

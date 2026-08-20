@@ -4,6 +4,12 @@ Faz o Claude Code (`claude`) e o Gemini CLI (`gemini`) trabalharem juntos, em
 turnos, na sua máquina, com tudo impresso ao vivo no seu terminal e
 sincronizado com um Issue + quadro Kanban (GitHub Projects) deste repositório.
 
+> Se você já tem o `claude` CLI rodando localmente neste repositório, o
+> jeito mais simples de usar isto é digitar `/gemini-loop` numa conversa
+> com o Claude — o skill em `.claude/skills/gemini-loop/` guia a
+> configuração e roda este script pra você. As instruções abaixo são pra
+> rodar `run.sh` manualmente, sem o skill.
+
 Como funciona:
 
 1. Você roda `run.sh` localmente, apontando para uma tarefa (texto livre) ou
@@ -118,6 +124,7 @@ gh pr create -R yuremarketing/JuanNutri7IA --base main --head agent-loop/issue-4
 | `MAX_TURNS` | `20` | Limite de turnos antes de parar |
 | `PROJECT_NUMBER` | — | Número do GitHub Project (kanban); vazio desativa o sync |
 | `POST_TO_ISSUE` | `1` | Comentar cada turno no Issue (`0` desativa) |
+| `INTERACTIVE` | `1` | Pausa entre turnos pra você digitar algo pro próximo agente (desliga sozinho fora de um terminal real, ex. CI) |
 | `AUTO_PUSH` | `0` | `1` = dá `git push` depois de cada turno com commit |
 | `CLAUDE_PERMISSION_MODE` | `acceptEdits` | Modo de permissão do `claude -p` (veja `claude --help`) |
 | `CLAUDE_BIN` / `GEMINI_BIN` | `claude` / `gemini` | Caminho dos binários, se não estiverem no PATH padrão |
