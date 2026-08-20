@@ -64,6 +64,7 @@ TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 TRANSCRIPT="$LOG_DIR/loop-${TIMESTAMP}.md"
 
 log() { printf '%s\n' "$*" | tee -a "$TRANSCRIPT"; }
+log_file_only() { printf '%s\n' "$*" >> "$TRANSCRIPT"; }
 
 # ---------- Garante que existe um Issue para trabalhar ----------
 if [ -z "$ISSUE_NUMBER" ]; then
@@ -215,11 +216,19 @@ PROMPT
 }
 
 run_agent() {
-  local speaker="$1" prompt="$2" dir
+  # Roda o agente com a saída indo DIRETO pro terminal (herdada, não
+  # capturada) e, ao mesmo tempo, gravada em $outfile via tee. Isso é
+  # essencial pra dois motivos: (1) é o que torna a conversa "ao vivo" de
+  # verdade, em vez de só aparecer tudo de uma vez quando o turno termina;
+  # (2) se o CLI do agente parar pedindo algo interativo (login, aceitar
+  # termos, confiar na pasta), você vê a pergunta na hora, em vez do script
+  # travar silenciosamente esperando uma resposta que você nem sabe que
+  # precisa dar.
+  local speaker="$1" prompt="$2" outfile="$3" dir
   dir="$(agent_dir "$speaker")"
   case "$speaker" in
-    gemini) (cd "$dir" && "$GEMINI_BIN" -y -p "$prompt") 2>&1 ;;
-    claude) (cd "$dir" && "$CLAUDE_BIN" -p "$prompt" --permission-mode "$CLAUDE_PERMISSION_MODE") 2>&1 ;;
+    gemini) (cd "$dir" && "$GEMINI_BIN" -y -p "$prompt") 2>&1 | tee "$outfile" ;;
+    claude) (cd "$dir" && "$CLAUDE_BIN" -p "$prompt" --permission-mode "$CLAUDE_PERMISSION_MODE") 2>&1 | tee "$outfile" ;;
   esac
 }
 
@@ -258,9 +267,12 @@ while [ "$turn" -le "$MAX_TURNS" ]; do
   sync_agent_to_integration "$speaker"
 
   prompt="$(build_prompt "$speaker" "$other" "$turn")"
-  output="$(run_agent "$speaker" "$prompt")"
+  turn_outfile="$(mktemp)"
+  run_agent "$speaker" "$prompt" "$turn_outfile"
+  output="$(cat "$turn_outfile")"
+  rm -f "$turn_outfile"
 
-  log "$output"
+  log_file_only "$output"
   log ""
 
   merge_agent_into_integration "$speaker" "$turn"
