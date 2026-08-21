@@ -167,12 +167,12 @@ export default function Dashboard() {
               </div>
               <div className="card-body">
                 <ul className="features-list">
-                  <li style={{ '--delay': 1 } as any}><i className="ri-check-line"></i> <strong>US01:</strong> Triagem inicial automatizada de perfil.</li>
-                  <li style={{ '--delay': 2 } as any}><i className="ri-check-line"></i> <strong>US02:</strong> Anamnese e coleta de hábitos alimentares estruturados.</li>
-                  <li style={{ '--delay': 3 } as any}><i className="ri-check-line"></i> <strong>US03:</strong> Segmentação metabólica inteligente (Atleta, Estética, etc).</li>
-                  <li style={{ '--delay': 4 } as any}><i className="ri-check-line"></i> <strong>US04:</strong> Identificação de insumos na geladeira e lista de compras.</li>
-                  <li style={{ '--delay': 5 } as any}><i className="ri-check-line"></i> <strong>US05:</strong> Acompanhamento diário da adesão e feedbacks.</li>
-                  <li style={{ '--delay': 6 } as any}><i className="ri-check-line"></i> <strong>US06:</strong> Agendamento automático de consultas online.</li>
+                  <li style={{ '--delay': 1 } as any}><i className="ri-checkbox-blank-circle-line text-gray-500"></i> <strong>US01:</strong> Triagem inicial automatizada de perfil. <span className="text-xs text-gray-500 ml-2">(Não iniciada)</span></li>
+                  <li style={{ '--delay': 2 } as any}><i className="ri-checkbox-blank-circle-line text-gray-500"></i> <strong>US02:</strong> Anamnese e coleta de hábitos alimentares estruturados. <span className="text-xs text-gray-500 ml-2">(Não iniciada)</span></li>
+                  <li style={{ '--delay': 3 } as any}><i className="ri-checkbox-blank-circle-line text-gray-500"></i> <strong>US03:</strong> Segmentação metabólica inteligente (Atleta, Estética, etc). <span className="text-xs text-gray-500 ml-2">(Não iniciada)</span></li>
+                  <li style={{ '--delay': 4 } as any}><i className="ri-checkbox-blank-circle-line text-gray-500"></i> <strong>US04:</strong> Identificação de insumos na geladeira e lista de compras. <span className="text-xs text-gray-500 ml-2">(Não iniciada)</span></li>
+                  <li style={{ '--delay': 5 } as any}><i className="ri-checkbox-blank-circle-line text-gray-500"></i> <strong>US05:</strong> Acompanhamento diário da adesão e feedbacks. <span className="text-xs text-gray-500 ml-2">(Não iniciada)</span></li>
+                  <li style={{ '--delay': 6 } as any}><i className="ri-checkbox-blank-circle-line text-gray-500"></i> <strong>US06:</strong> Agendamento automático de consultas online. <span className="text-xs text-gray-500 ml-2">(Não iniciada)</span></li>
                 </ul>
               </div>
             </div>

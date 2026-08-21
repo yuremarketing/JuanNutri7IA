@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Target, Users, Smartphone, Gift, ShieldCheck, LayoutList, ChevronRight, ChevronLeft, CheckCircle2, Save } from 'lucide-react';
+import { Target, Users, Smartphone, Gift, ShieldCheck, LayoutList, ChevronRight, ChevronLeft, CheckCircle2, Save, Loader2 } from 'lucide-react';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../config/firebase';
 
 interface Question {
   id: string;
@@ -101,6 +103,7 @@ export default function BriefingApp() {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isCompleted, setIsCompleted] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const currentSection = sections[currentSectionIndex];
 
@@ -111,12 +114,24 @@ export default function BriefingApp() {
     }));
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentSectionIndex < sections.length - 1) {
       setCurrentSectionIndex(prev => prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      setIsCompleted(true);
+      setIsSaving(true);
+      try {
+        await addDoc(collection(db, 'briefings'), {
+          ...answers,
+          timestamp: serverTimestamp()
+        });
+        setIsCompleted(true);
+      } catch (error) {
+        console.error("Erro ao salvar briefing:", error);
+        alert("Erro ao salvar as respostas. Por favor, tente novamente.");
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -287,10 +302,17 @@ export default function BriefingApp() {
               
               <button
                 onClick={handleNext}
-                className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200"
+                disabled={isSaving}
+                className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {currentSectionIndex === sections.length - 1 ? 'Concluir Briefing' : 'Próxima Secção'}
-                <ChevronRight size={18} />
+                {isSaving ? (
+                  <>A gravar... <Loader2 size={18} className="animate-spin" /></>
+                ) : (
+                  <>
+                    {currentSectionIndex === sections.length - 1 ? 'Concluir Briefing' : 'Próxima Secção'}
+                    <ChevronRight size={18} />
+                  </>
+                )}
               </button>
             </div>
             
