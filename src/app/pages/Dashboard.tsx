@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
 
 export default function Dashboard() {
   const demoBtnRef = useRef<HTMLButtonElement>(null);
@@ -134,6 +135,25 @@ export default function Dashboard() {
           </header>
 
           <div className="dashboard-grid">
+            {/* RAG INTAKE ALERT */}
+            <div className="card-full bg-amber-50 border border-amber-200 rounded-2xl p-6 shadow-sm flex items-center justify-between col-span-full">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-6 h-6 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-amber-900">Ação Necessária: Base de Conhecimento IA (RAG)</h3>
+                  <p className="text-amber-700">A Inteligência Artificial precisa do seu conhecimento técnico para avançar com o desenvolvimento (Issue #12).</p>
+                </div>
+              </div>
+              <Link 
+                to="/rag-intake"
+                className="px-6 py-3 bg-amber-600 text-white font-medium rounded-xl hover:bg-amber-700 transition-colors whitespace-nowrap shadow-md shadow-amber-200"
+              >
+                Completar Base de Conhecimento da IA
+              </Link>
+            </div>
+
             <div className="card stat-card glow">
               <div className="stat-icon"><i className="ri-user-heart-line"></i></div>
               <div className="stat-details">
