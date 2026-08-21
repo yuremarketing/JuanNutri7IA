@@ -1,9 +1,9 @@
 
 import { Routes, Route } from 'react-router-dom';
-import Dashboard from './pages/Dashboard';
-import BriefingApp from './pages/Briefing';
-import Login from './pages/Login';
-import ProtectedRoute from './components/ProtectedRoute';
+import Dashboard from './app/pages/Dashboard';
+import BriefingApp from './interno/pages/Briefing';
+import Login from './app/pages/Login';
+import ProtectedRoute from './shared/components/ProtectedRoute';
 
 function App() {
   return (

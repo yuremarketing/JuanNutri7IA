@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Target, Users, Smartphone, Gift, ShieldCheck, LayoutList, ChevronRight, ChevronLeft, CheckCircle2, Save, Loader2 } from 'lucide-react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db } from '../../shared/config/firebase';
 
 interface Question {
   id: string;
