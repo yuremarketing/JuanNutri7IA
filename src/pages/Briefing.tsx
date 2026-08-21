@@ -160,10 +160,11 @@ export default function BriefingApp() {
             Rever Respostas
           </button>
           <button 
-            className="px-6 py-3 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-lg shadow-emerald-200"
+            disabled
+            className="px-6 py-3 bg-slate-200 text-slate-500 font-medium rounded-xl flex items-center gap-2 cursor-not-allowed border border-slate-300"
           >
             <Save size={18} />
-            Gerar Plano de Marketing
+            Gerar Plano de Marketing (Em Breve)
           </button>
         </div>
       </div>
