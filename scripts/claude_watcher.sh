@@ -3,19 +3,29 @@
 
 FILE="SALA_DE_GUERRA.md"
 LAST_MOD=$(stat -c %Y "$FILE")
+NUDGED_MOD=$LAST_MOD
+STABLE_COUNT=0
 
 echo "Watcher iniciado. Vigiando $FILE..."
 
 while true; do
-  sleep 2
+  sleep 1
   CURRENT_MOD=$(stat -c %Y "$FILE")
-  
-  if [ "$CURRENT_MOD" != "$LAST_MOD" ]; then
+
+  if [ "$CURRENT_MOD" == "$LAST_MOD" ]; then
+    STABLE_COUNT=$((STABLE_COUNT+1))
+  else
+    STABLE_COUNT=0
     LAST_MOD=$CURRENT_MOD
-    
+  fi
+
+  # Só dispara depois de 3s sem o arquivo mudar (evita disparo duplicado
+  # enquanto quem escreveu ainda está salvando em varias partes) e só se
+  # essa versão do arquivo ainda não foi notificada (evita reenvio).
+  if [ "$STABLE_COUNT" -ge 3 ] && [ "$CURRENT_MOD" != "$NUDGED_MOD" ]; then
     # Pega quem foi a última pessoa a falar no arquivo
     LAST_SPEAKER=$(grep -E '\*\*\[.*\]:\*\*' "$FILE" | tail -n 1)
-    
+
     # Se não foi o Claude e não foi o Antigravity, significa que foi o Humano!
     if [[ "$LAST_SPEAKER" != *"Claude"* ]] && [[ "$LAST_SPEAKER" != *"Antigravity"* ]]; then
         echo "Humano falou! Acordando o Claude no tmux..."
@@ -25,5 +35,6 @@ while true; do
         CLAUDE_PANE=$(tmux list-panes -t loop_guerra:chat -F '#{pane_id}' | tail -n 1)
         tmux send-keys -t "$CLAUDE_PANE" "Novo recado na Sala de Guerra! Leia a última mensagem e responda." C-m
     fi
+    NUDGED_MOD=$CURRENT_MOD
   fi
 done
