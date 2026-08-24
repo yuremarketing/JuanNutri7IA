@@ -21,35 +21,13 @@ tmux send-keys -t "$CLAUDE_PANE" "claude --permission-mode acceptEdits" C-m
 # Espera o Claude carregar
 sleep 5
 
-# Cria janela de monitoramento invisível
-tmux new-window -d -n monitor -t loop_guerra
-tmux send-keys -t loop_guerra:monitor "
-LAST_SIZE=\$(stat -c%s SALA_DE_GUERRA.md)
-NUDGED_SIZE=\$LAST_SIZE
-STABLE_COUNT=0
-while true; do
-  sleep 1
-  CURRENT_SIZE=\$(stat -c%s SALA_DE_GUERRA.md)
-  if [ \"\$CURRENT_SIZE\" == \"\$LAST_SIZE\" ]; then
-    STABLE_COUNT=\$((STABLE_COUNT+1))
-  else
-    STABLE_COUNT=0
-    LAST_SIZE=\$CURRENT_SIZE
-  fi
-  # Só dispara depois de 3s sem o arquivo crescer (evita disparo duplicado
-  # enquanto o Antigravity ainda está salvando a mensagem em varias partes)
-  # e só se esse tamanho ainda não foi notificado (evita reenvio no mesmo
-  # conteudo).
-  if [ \"\$STABLE_COUNT\" -ge 3 ] && [ \"\$CURRENT_SIZE\" != \"\$NUDGED_SIZE\" ]; then
-    LAST_SENDER=\$(tail -n 10 SALA_DE_GUERRA.md | grep '\*\*' | tail -n 1)
-    if [[ \"\$LAST_SENDER\" == *\"[Antigravity\"* ]]; then
-      CLAUDE_PANE=\$(tmux list-panes -t loop_guerra:chat -F '#{pane_id}' | tail -n 1)
-      tmux send-keys -t \"\$CLAUDE_PANE\" 'O Antigravity respondeu na SALA_DE_GUERRA.md. Leia a última mensagem dele, faça a sua parte e responda na SALA_DE_GUERRA.md abaixo da linha divisória (tag **[Claude]:**). Não faça git commit nem push desse arquivo.' C-m
-    fi
-    NUDGED_SIZE=\$CURRENT_SIZE
-  fi
-done
-" C-m
+# Janela de monitoramento: roda como ARQUIVO de verdade (respeita o
+# shebang #!/bin/bash), em vez de colar o script como texto dentro do
+# shell interativo do usuário. Colar texto multi-linha num shell
+# interativo depende do shell padrão da máquina entender a sintaxe —
+# em zsh isso já quebrou silenciosamente ("zsh: = not found") e deixou
+# essa janela morta sem avisar ninguém.
+tmux new-window -d -n monitor -t loop_guerra "./scripts/loop_monitor.sh"
 
 # Painel Oculto: Monitor Automático (acorda o Claude quando o arquivo muda)
 tmux new-window -t loop_guerra -d -n watcher "./scripts/claude_watcher.sh"
