@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Target, ListPlus, Flame, BookOpen, Save, Loader2, Plus, Trash2, ShieldAlert } from 'lucide-react';
+import { Target, ListPlus, Flame, BookOpen, Save, Loader2, Plus, Trash2, ShieldAlert, Heart } from 'lucide-react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../shared/config/firebase';
 
@@ -21,6 +21,16 @@ export default function RagIntake() {
     menuClinical: '',
     menuAesthetics: '',
     substitutions: '',
+
+    // 4. Persona e atendimento clínico
+    personaTone: '',
+    personaOpening: '',
+    personaNonAdherence: '',
+    personaMotivation: '',
+    personaExpressions: '',
+    personaAvoid: '',
+    personaEscalation: '',
+    personaClosing: '',
   });
 
   const [faqs, setFaqs] = useState<FAQ[]>([{ question: '', answer: '' }]);
@@ -233,13 +243,134 @@ export default function RagIntake() {
             </div>
           </section>
 
-          {/* Section 3: FAQ */}
+          {/* Section 3: Persona e Atendimento Clínico */}
+          <section className="space-y-6">
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+              <div className="p-2 bg-rose-50 text-rose-600 rounded-lg">
+                <Heart size={20} />
+              </div>
+              <h2 className="text-2xl font-bold text-slate-800">3. Persona e Atendimento Clínico</h2>
+            </div>
+            <p className="text-sm text-slate-500 -mt-2">
+              Esta seção ensina a IA a soar como você, não como um chatbot de nutrição genérico.
+            </p>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Como você se dirige ao paciente no dia a dia (formal/informal, técnico/simples, direto/acolhedor)? Dê um exemplo de frase real sua.
+                </label>
+                <textarea
+                  name="personaTone"
+                  value={formData.personaTone}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                  placeholder="Ex: Uso um tom direto mas acolhedor, sempre chamo pelo primeiro nome..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Como você costuma começar uma consulta ou responder a primeira mensagem de um paciente novo?
+                </label>
+                <textarea
+                  name="personaOpening"
+                  value={formData.personaOpening}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Como você reage quando o paciente conta que "furou" o plano? Dê um exemplo real de resposta sua.
+                </label>
+                <textarea
+                  name="personaNonAdherence"
+                  value={formData.personaNonAdherence}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Como você incentiva um paciente que está achando o processo difícil ou querendo desistir?
+                </label>
+                <textarea
+                  name="personaMotivation"
+                  value={formData.personaMotivation}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Alguma frase, gíria ou expressão que você usa com frequência e que os pacientes já reconhecem como "sua"?
+                </label>
+                <textarea
+                  name="personaExpressions"
+                  value={formData.personaExpressions}
+                  onChange={handleInputChange}
+                  rows={2}
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Tem algo que outros nutricionistas/conteúdo genérico por aí dizem que você especificamente evita (dieta restritiva extrema, contar caloria obsessivamente, etc.)?
+                </label>
+                <textarea
+                  name="personaAvoid"
+                  value={formData.personaAvoid}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Em que situação você pararia o atendimento por IA/texto e mandaria o paciente procurar atendimento presencial ou urgente (sinais de transtorno alimentar, sintoma clínico fora do escopo, etc.)?
+                </label>
+                <textarea
+                  name="personaEscalation"
+                  value={formData.personaEscalation}
+                  onChange={handleInputChange}
+                  rows={4}
+                  className="w-full p-4 bg-rose-50 border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-500 outline-none transition-all"
+                  placeholder="Isso vira uma regra de segurança do sistema — seja específico."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Como você costuma fechar uma resposta ou consulta?
+                </label>
+                <textarea
+                  name="personaClosing"
+                  value={formData.personaClosing}
+                  onChange={handleInputChange}
+                  rows={2}
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Section 4: FAQ */}
           <section className="space-y-6">
             <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
               <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
                 <ListPlus size={20} />
               </div>
-              <h2 className="text-2xl font-bold text-slate-800">3. FAQ de Pacientes</h2>
+              <h2 className="text-2xl font-bold text-slate-800">4. FAQ de Pacientes</h2>
             </div>
 
             <div className="space-y-6">
