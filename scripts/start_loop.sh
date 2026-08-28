@@ -18,7 +18,7 @@ tmux send-keys -t "$TAIL_PANE" "clear; ./scripts/colorize_chat.sh" C-m
 CLAUDE_PANE=$(tmux split-window -h -t loop_guerra:chat -P -F '#{pane_id}')
 
 # Painel da Direita: Claude Code (binário direto, sem depender de npx/registry)
-tmux send-keys -t "$CLAUDE_PANE" "claude --permission-mode acceptEdits" C-m
+tmux send-keys -t "$CLAUDE_PANE" "claude --dangerously-skip-permissions" C-m
 
 # Espera o Claude carregar
 sleep 5

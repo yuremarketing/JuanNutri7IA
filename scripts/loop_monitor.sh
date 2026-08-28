@@ -12,10 +12,13 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/war_room_lib.sh"
 
+WR_STATE_FILE="${WR_STATE_FILE:-.war_room_cursor_wait_loop_monitor}"
+
 echo "Monitor iniciado. Vigiando $WR_FILE por respostas do Antigravity..."
 
 while true; do
   SENDER=$(wr_wait_for_turn)
+  wr_record_turn "$SENDER"
 
   if [[ "$SENDER" == *"[Antigravity"* ]]; then
     echo "Antigravity respondeu! Acordando o Claude no tmux..."

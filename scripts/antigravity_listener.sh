@@ -14,18 +14,27 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/war_room_lib.sh"
 
 WR_CURSOR_FILE="${WR_CURSOR_FILE:-.war_room_cursor_antigravity}"
+WR_STATE_FILE="${WR_STATE_FILE:-.war_room_cursor_wait_antigravity_listener}"
 
-# Trava de segurança: sem isso os dois agentes podem entrar num ping-pong
-# infinito (e pago) se ficarem só concordando um com o outro. Zera sempre
-# que o Humano fala; some depois de MAX_AUTO_TURNS respostas seguidas sem
-# intervenção humana.
+# Trava de segurança absoluta: sem isso os dois agentes podem entrar num
+# ping-pong infinito (e pago) se ficarem só concordando um com o outro.
+# Zera sempre que o Humano fala; some depois de MAX_AUTO_TURNS respostas
+# seguidas sem intervenção humana, PRODUTIVAS OU NÃO — é o teto de última
+# instância, nunca deveria ser o que de fato pausa o loop no dia a dia.
 MAX_AUTO_TURNS=${MAX_AUTO_TURNS:-8}
 AUTO_TURNS=0
 
+# Trava fina (Fase 2 do debate, item 3): pausa bem antes do teto absoluto
+# se os turnos estiverem se repetindo sem nenhuma mutação real no repo
+# (commit novo ou arquivo alterado) — o que aconteceu de fato no teste do
+# poema e no de matemática, que não geraram diff nenhum. Contador vive no
+# estado compartilhado (wr_record_turn), não aqui, porque os 3 watchers
+# precisam enxergar o mesmo streak.
 echo "Listener do Antigravity iniciado. Vigiando $WR_FILE..."
 
 while true; do
   SENDER=$(wr_wait_for_turn)
+  wr_record_turn "$SENDER"
 
   # Antigravity falando com ele mesmo não deve disparar nada.
   if [[ "$SENDER" == *"Antigravity"* ]]; then
@@ -39,6 +48,12 @@ while true; do
 
   if [ "$AUTO_TURNS" -ge "$MAX_AUTO_TURNS" ]; then
     echo "Limite de $MAX_AUTO_TURNS turnos automáticos atingido — esperando o Humano falar pra resetar."
+    continue
+  fi
+
+  SOCIAL_STREAK=$(wr_social_streak)
+  if [ "$SOCIAL_STREAK" -ge "$WR_SOCIAL_TURN_LIMIT" ]; then
+    echo "Pausado: $SOCIAL_STREAK turnos sociais seguidos sem mutação no repo (limite $WR_SOCIAL_TURN_LIMIT) — esperando o Humano falar pra resetar."
     continue
   fi
 
