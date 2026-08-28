@@ -17,5 +17,6 @@ tail -F "$FILE" | awk '
   /\*\*\[Antigravity/ { c = "\033[36m" }
   /\*\*\[Claude/       { c = "\033[35m" }
   /\*\*\[.*\]:\*\*/ && !/Antigravity/ && !/Claude/ { c = "\033[32m" }
+  /<!--FIM_TURNO-->/ { print "\033[90m" $0 "\033[0m"; next }
   { print c $0 "\033[0m" }
 '

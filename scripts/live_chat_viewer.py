@@ -18,6 +18,11 @@ CHAT_FILE = Path(__file__).resolve().parent.parent / "SALA_DE_GUERRA.md"
 console = Console()
 
 AGENT_CONFIG = {
+    "Antigravity IDE": {
+        "title": "🖥️ Antigravity IDE 2.0",
+        "color": "blue",
+        "border_style": "bold blue",
+    },
     "Antigravity": {
         "title": "🤖 Antigravity (Google DeepMind)",
         "color": "cyan",
@@ -61,7 +66,9 @@ def parse_messages(content: str):
             
             # Extrai o remetente
             sender_raw = stripped.split("]:**")[0].replace("**[", "").strip()
-            if "Antigravity" in sender_raw:
+            if "Antigravity IDE" in sender_raw or "Antigravit2.0 IDE" in sender_raw:
+                current_sender = "Antigravity IDE"
+            elif "Antigravity" in sender_raw:
                 current_sender = "Antigravity"
             elif "Claude" in sender_raw:
                 current_sender = "Claude"

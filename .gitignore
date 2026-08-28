@@ -31,3 +31,5 @@ secrets/
 SALA_DE_GUERRA.md
 __pycache__/
 *.pyc
+.war_room_cursor_*
+.war_room_state.json
