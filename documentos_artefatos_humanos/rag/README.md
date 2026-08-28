@@ -22,3 +22,14 @@ Tudo aqui precisa ser **conteúdo real do Juan**, validado por ele — nunca
 gerado por IA "inventando" conduta clínica. Se um agente (Claude/Gemini)
 tocar nestes arquivos, o trabalho dele é organizar/formatar o que o Juan
 forneceu, nunca preencher a lacuna clínica sozinho.
+
+## Status (decidido na issue #13)
+
+O mecanismo real de coleta hoje é o formulário `/rag-intake`
+(`src/interno/pages/RagIntake.tsx`), que salva direto no Firestore
+(coleção `rag_conteudo`) e cobre as mesmas seções desta pasta
+(conhecimento técnico, cardápios/protocolos, persona, FAQ). Os
+templates markdown aqui continuam valendo como referência/rascunho —
+o Juan pode escrever aqui primeiro e depois transcrever pro formulário,
+ou preencher direto no `/rag-intake` — mas a fonte de verdade que a IA
+vai consumir é o Firestore, não estes arquivos `.md`.
