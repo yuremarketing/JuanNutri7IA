@@ -30,9 +30,16 @@ while true; do
   # e só se esse tamanho ainda não foi notificado (evita reenvio no mesmo
   # conteudo).
   if [ "$STABLE_COUNT" -ge 3 ] && [ "$CURRENT_SIZE" != "$NUDGED_SIZE" ]; then
-    LAST_SENDER=$(tail -n 10 "$FILE" | grep '\*\*' | tail -n 1)
+    # Precisa casar só a linha de marcador de remetente ("**[Nome]:**"),
+    # não qualquer linha com **negrito** dentro do corpo da mensagem —
+    # isso já causou falso-negativo quando a última linha em negrito era
+    # texto normal da mensagem, não a tag do remetente.
+    LAST_SENDER=$(grep -E '\*\*\[.*\]:\*\*' "$FILE" | tail -n 1)
     if [[ "$LAST_SENDER" == *"[Antigravity"* ]]; then
       echo "Antigravity respondeu! Acordando o Claude no tmux..."
+      # Banner efêmero na status bar do tmux — não escreve no .md, então
+      # não dispara o watcher do outro lado nem suja o histórico.
+      tmux display-message -t loop_guerra "⏳ Claude está processando..."
       # Painel do Claude é sempre o último criado no split (não usar
       # índice fixo — depende de pane-base-index).
       CLAUDE_PANE=$(tmux list-panes -t loop_guerra:chat -F '#{pane_id}' | tail -n 1)

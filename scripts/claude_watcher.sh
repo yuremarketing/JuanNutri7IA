@@ -26,9 +26,14 @@ while true; do
     # Pega quem foi a última pessoa a falar no arquivo
     LAST_SPEAKER=$(grep -E '\*\*\[.*\]:\*\*' "$FILE" | tail -n 1)
 
-    # Se não foi o Claude e não foi o Antigravity, significa que foi o Humano!
-    if [[ "$LAST_SPEAKER" != *"Claude"* ]] && [[ "$LAST_SPEAKER" != *"Antigravity"* ]]; then
-        echo "Humano falou! Acordando o Claude no tmux..."
+    # Acorda o Claude sempre que quem falou por último NÃO foi ele mesmo
+    # (Antigravity ou Humano). Antes só reagia ao Humano, então o Claude
+    # nunca era avisado quando o Antigravity respondia no arquivo.
+    if [[ "$LAST_SPEAKER" != *"Claude"* ]]; then
+        echo "Antigravity ou Humano falou! Acordando o Claude no tmux..."
+        # Banner efêmero na status bar do tmux — não escreve no .md, então
+        # não dispara o watcher do outro lado nem suja o histórico.
+        tmux display-message -t loop_guerra "⏳ Claude está processando..."
         # Painel do Claude é sempre o último criado no split (não usar
         # índice fixo tipo "chat.1" — depende de pane-base-index e já
         # mandou nudge pro painel errado do tail antes).

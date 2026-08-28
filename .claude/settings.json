@@ -12,7 +12,11 @@
       "Bash(git log:*)",
       "Bash(git diff:*)",
       "Bash(gh issue list:*)",
-      "Bash(gh issue view:*)"
+      "Bash(gh issue view:*)",
+      "Bash(bash -n:*)",
+      "Bash(chmod +x scripts/*.sh)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npm run build)"
     ]
   }
 }

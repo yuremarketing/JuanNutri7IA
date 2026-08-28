@@ -9,8 +9,10 @@ tmux kill-session -t loop_guerra 2>/dev/null
 # base-index/pane-base-index, que é o que quebrava antes.
 TAIL_PANE=$(tmux new-session -d -s loop_guerra -n chat -P -F '#{pane_id}')
 
-# Painel da Esquerda: Sala de Guerra (tail -F)
-tmux send-keys -t "$TAIL_PANE" "clear; tail -F SALA_DE_GUERRA.md" C-m
+# Painel da Esquerda: Sala de Guerra (tail -F colorido — cyan Antigravity,
+# roxo Claude, verde Humano; script real em scripts/colorize_chat.sh pra
+# não depender do shell interativo entender o awk colado)
+tmux send-keys -t "$TAIL_PANE" "clear; ./scripts/colorize_chat.sh" C-m
 
 # Divide a tela horizontalmente e captura o pane_id do painel novo
 CLAUDE_PANE=$(tmux split-window -h -t loop_guerra:chat -P -F '#{pane_id}')

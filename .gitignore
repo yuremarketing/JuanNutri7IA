@@ -29,3 +29,5 @@ dist-ssr
 *.tsbuildinfo
 secrets/
 SALA_DE_GUERRA.md
+__pycache__/
+*.pyc
