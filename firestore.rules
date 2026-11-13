@@ -10,5 +10,11 @@ service cloud.firestore {
     match /rag_conteudo/{document=**} {
       allow read, write: if request.auth != null;
     }
+
+    // Permitir acesso à coleção entrevista_sessoes
+    match /entrevista_sessoes/{document=**} {
+      allow read, write: if request.auth != null;
+    }
   }
 }
+

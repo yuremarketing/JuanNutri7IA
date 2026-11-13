@@ -95,8 +95,10 @@ export default function Dashboard() {
             <Link to="#"><i className="ri-brain-line"></i> Triagem IA</Link>
             <Link to="#"><i className="ri-camera-lens-line"></i> Visão Comp.</Link>
             <Link to="/briefing"><i className="ri-file-list-3-line"></i> Briefing Marketing</Link>
+            <Link to="/governanca"><i className="ri-shield-check-line"></i> Governança (Grill-me)</Link>
             <Link to="#"><i className="ri-settings-4-line"></i> Configurações</Link>
           </nav>
+
 
           <div className="user-profile">
             <div className="avatar">
