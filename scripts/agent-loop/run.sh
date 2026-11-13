@@ -40,6 +40,21 @@ LOG_DIR="${LOG_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)/logs/age
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$REPO_ROOT" || exit 1
 
+# ---------- Checagem não-bloqueante de coexistência (Issue #17) ----------
+LOCKFILE="$REPO_ROOT/.agent-loop.lock"
+echo "$$" > "$LOCKFILE"
+trap 'rm -f "$LOCKFILE"' EXIT INT TERM
+
+if command -v tmux >/dev/null 2>&1 && tmux has-session -t loop_guerra 2>/dev/null; then
+  echo ""
+  echo "⚠️  [AVISO] Sessão tmux 'loop_guerra' (Sala de Guerra local) detectada em execução!"
+  echo "   Este loop via Issue roda de forma isolada, mas verifique se os dois não estão"
+  echo "   alterando os mesmos arquivos concorrentemente (detalhes em scripts/README.md)."
+  echo ""
+fi
+# --------------------------------------------------------------------------
+
+
 command -v "$GEMINI_BIN" >/dev/null 2>&1 || { echo "Erro: '$GEMINI_BIN' não encontrado no PATH. Instale o Gemini CLI." >&2; exit 1; }
 command -v "$CLAUDE_BIN" >/dev/null 2>&1 || { echo "Erro: '$CLAUDE_BIN' não encontrado no PATH. Instale o Claude Code CLI." >&2; exit 1; }
 command -v gh >/dev/null 2>&1 || { echo "Erro: 'gh' (GitHub CLI) não encontrado no PATH." >&2; exit 1; }

@@ -1,8 +1,19 @@
 #!/bin/bash
 touch SALA_DE_GUERRA.md
 
+# Checagem não-bloqueante de coexistência (Issue #17)
+if [ -f .agent-loop.lock ]; then
+  LOOP_PID=$(cat .agent-loop.lock 2>/dev/null)
+  if [ -n "$LOOP_PID" ] && kill -0 "$LOOP_PID" 2>/dev/null; then
+    echo "⚠️  [AVISO] O agent-loop assíncrono via Issue (.agent-loop.lock, PID $LOOP_PID) está ativo!"
+    echo "   A Sala de Guerra no tmux roda de forma isolada, mas atente para não editar os mesmos arquivos (ver scripts/README.md)."
+    sleep 2
+  fi
+fi
+
 # Tenta fechar a sessão se já existir
 tmux kill-session -t loop_guerra 2>/dev/null
+
 
 # Inicia nova sessão do tmux desanexada e renomeia a primeira janela.
 # Captura o pane_id real (não o índice numérico) pra não depender de

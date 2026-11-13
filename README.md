@@ -60,3 +60,7 @@ servem como rascunho/apoio, não substituem os dados coletados pelo app.
 - `SALA_DE_GUERRA.md` (não versionado) é o canal de coordenação em tempo
   real entre os agentes de IA que trabalham no projeto — não faz parte do
   código do produto.
+- Este repo tem dois mecanismos de coordenação entre agentes (loop formal
+  via Issue vs. chat local em tempo real) e **não** usa o plugin genérico
+  `agloop`/`vigia.py` — qual usar e por quê está em
+  [`scripts/README.md`](scripts/README.md).
