@@ -1,21 +1,38 @@
 import { useState } from 'react';
-import { Target, ListPlus, Flame, BookOpen, Save, Loader2, Plus, Trash2, ShieldAlert, Heart } from 'lucide-react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { Target, ListPlus, Flame, BookOpen, Save, Loader2, Plus, Trash2, ShieldAlert, Heart, Apple, Pill } from 'lucide-react';
+import { collection, addDoc, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../shared/config/firebase';
+import type { AlimentoDoc, TmbConfigDoc, MicronutrienteDoc, CategoriaAlimento, FonteAlimento, FormulaTmb } from '../../shared/types/rag';
 
 interface FAQ {
   question: string;
   answer: string;
 }
 
+type AlimentoForm = Omit<AlimentoDoc, 'atualizadoEm' | 'porcaoReferenciaG' | 'proteinaG' | 'carboidratoG' | 'lipideosG' | 'fibrasG' | 'caloriasKcal'> & {
+  porcaoReferenciaG: string;
+  proteinaG: string;
+  carboidratoG: string;
+  lipideosG: string;
+  fibrasG: string;
+  caloriasKcal: string;
+};
+
+type MicronutrienteForm = Omit<MicronutrienteDoc, 'atualizadoEm' | 'alimentosFontes'> & {
+  alimentosFontes: string;
+};
+
+const ALIMENTO_VAZIO: AlimentoForm = {
+  nome: '', categoria: 'proteina', porcaoReferenciaG: '100', proteinaG: '',
+  carboidratoG: '', lipideosG: '', fibrasG: '', caloriasKcal: '', fonte: 'TACO', observacoes: '',
+};
+
+const MICRO_VAZIO: MicronutrienteForm = {
+  nutriente: '', dosagemReferencia: '', alimentosFontes: '', condutaClinicaJuan: '',
+};
+
 export default function RagIntake() {
   const [formData, setFormData] = useState({
-    // 1. Conhecimento técnico
-    foodTableSource: '',
-    tmbFormula: '',
-    tmbAdjustments: '',
-    microGuidelines: '',
-    
     // 2. Cardápios e protocolos
     menuAthlete: '',
     menuClinical: '',
@@ -34,7 +51,20 @@ export default function RagIntake() {
   });
 
   const [faqs, setFaqs] = useState<FAQ[]>([{ question: '', answer: '' }]);
-  
+
+  const [alimentos, setAlimentos] = useState<AlimentoForm[]>([{ ...ALIMENTO_VAZIO }]);
+  const [tmbConfig, setTmbConfig] = useState({
+    formulaPadrao: 'mifflin' as FormulaTmb,
+    sedentario: '1.2',
+    leve: '1.375',
+    moderado: '1.55',
+    intenso: '1.725',
+    muitoIntenso: '1.9',
+    emagrecimentoKcal: '-500',
+    hipertrofiaKcal: '350',
+  });
+  const [micronutrientes, setMicronutrientes] = useState<MicronutrienteForm[]>([{ ...MICRO_VAZIO }]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,12 +83,87 @@ export default function RagIntake() {
   const addFaq = () => setFaqs([...faqs, { question: '', answer: '' }]);
   const removeFaq = (index: number) => setFaqs(faqs.filter((_, i) => i !== index));
 
+  const handleAlimentoChange = (index: number, field: keyof AlimentoForm, value: string) => {
+    const next = [...alimentos];
+    next[index] = { ...next[index], [field]: value };
+    setAlimentos(next);
+  };
+  const addAlimento = () => setAlimentos([...alimentos, { ...ALIMENTO_VAZIO }]);
+  const removeAlimento = (index: number) => setAlimentos(alimentos.filter((_, i) => i !== index));
+
+  const handleTmbConfigChange = (field: keyof typeof tmbConfig, value: string) => {
+    setTmbConfig(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleMicroChange = (index: number, field: keyof MicronutrienteForm, value: string) => {
+    const next = [...micronutrientes];
+    next[index] = { ...next[index], [field]: value };
+    setMicronutrientes(next);
+  };
+  const addMicro = () => setMicronutrientes([...micronutrientes, { ...MICRO_VAZIO }]);
+  const removeMicro = (index: number) => setMicronutrientes(micronutrientes.filter((_, i) => i !== index));
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setError(null);
     setIsSuccess(false);
 
     try {
+      const batch = writeBatch(db);
+
+      alimentos
+        .filter(a => a.nome.trim() !== '')
+        .forEach(a => {
+          const alimentoDoc: AlimentoDoc = {
+            nome: a.nome,
+            categoria: a.categoria as CategoriaAlimento,
+            porcaoReferenciaG: Number(a.porcaoReferenciaG) || 0,
+            proteinaG: Number(a.proteinaG) || 0,
+            carboidratoG: Number(a.carboidratoG) || 0,
+            lipideosG: Number(a.lipideosG) || 0,
+            ...(a.fibrasG ? { fibrasG: Number(a.fibrasG) } : {}),
+            caloriasKcal: Number(a.caloriasKcal) || 0,
+            fonte: a.fonte as FonteAlimento,
+            ...(a.observacoes ? { observacoes: a.observacoes } : {}),
+            atualizadoEm: serverTimestamp(),
+          };
+          batch.set(doc(collection(db, 'rag_alimentos')), alimentoDoc);
+        });
+
+      const tmbConfigDoc: TmbConfigDoc = {
+        formulaPadrao: tmbConfig.formulaPadrao,
+        fatoresAtividade: {
+          sedentario: Number(tmbConfig.sedentario) || 0,
+          leve: Number(tmbConfig.leve) || 0,
+          moderado: Number(tmbConfig.moderado) || 0,
+          intenso: Number(tmbConfig.intenso) || 0,
+          muitoIntenso: Number(tmbConfig.muitoIntenso) || 0,
+        },
+        ajusteObjetivo: {
+          emagrecimentoKcal: Number(tmbConfig.emagrecimentoKcal) || 0,
+          hipertrofiaKcal: Number(tmbConfig.hipertrofiaKcal) || 0,
+        },
+        atualizadoEm: serverTimestamp(),
+      };
+      batch.set(doc(db, 'rag_tmb_config', 'default'), tmbConfigDoc);
+
+      micronutrientes
+        .filter(m => m.nutriente.trim() !== '')
+        .forEach(m => {
+          const microDoc: MicronutrienteDoc = {
+            nutriente: m.nutriente,
+            ...(m.dosagemReferencia ? { dosagemReferencia: m.dosagemReferencia } : {}),
+            ...(m.alimentosFontes
+              ? { alimentosFontes: m.alimentosFontes.split(',').map(s => s.trim()).filter(Boolean) }
+              : {}),
+            condutaClinicaJuan: m.condutaClinicaJuan,
+            atualizadoEm: serverTimestamp(),
+          };
+          batch.set(doc(collection(db, 'rag_micronutrientes')), microDoc);
+        });
+
+      await batch.commit();
+
       await addDoc(collection(db, 'rag_conteudo'), {
         ...formData,
         faqs,
@@ -119,62 +224,150 @@ export default function RagIntake() {
               <h2 className="text-2xl font-bold text-slate-800">1. Conhecimento Técnico</h2>
             </div>
 
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Qual a fonte da tabela de alimentos que você usa (TACO, USDA, própria)?
-                </label>
-                <textarea 
-                  name="foodTableSource"
-                  value={formData.foodTableSource}
-                  onChange={handleInputChange}
-                  rows={3} 
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                  placeholder="Ex: Utilizo principalmente a TACO para alimentos nacionais e USDA para..."
-                />
+            {/* 1a. Tabela de alimentos */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Apple size={18} className="text-emerald-600" />
+                <h3 className="font-semibold text-slate-700">Tabela de alimentos que você usa na prática</h3>
               </div>
+              {alimentos.map((a, index) => (
+                <div key={index} className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 relative group">
+                  {alimentos.length > 1 && (
+                    <button
+                      onClick={() => removeAlimento(index)}
+                      className="absolute -top-3 -right-3 p-2 bg-white text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full shadow-md transition-all opacity-0 group-hover:opacity-100"
+                      title="Remover alimento"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <input
+                      type="text"
+                      placeholder="Nome do alimento"
+                      value={a.nome}
+                      onChange={(e) => handleAlimentoChange(index, 'nome', e.target.value)}
+                      className="col-span-2 p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                    <select
+                      value={a.categoria}
+                      onChange={(e) => handleAlimentoChange(index, 'categoria', e.target.value)}
+                      className="p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                    >
+                      <option value="proteina">Proteína</option>
+                      <option value="carboidrato">Carboidrato</option>
+                      <option value="gordura">Gordura</option>
+                      <option value="vegetal">Vegetal</option>
+                      <option value="fruta">Fruta</option>
+                      <option value="suplemento">Suplemento</option>
+                    </select>
+                    <select
+                      value={a.fonte}
+                      onChange={(e) => handleAlimentoChange(index, 'fonte', e.target.value)}
+                      className="p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                    >
+                      <option value="TACO">TACO</option>
+                      <option value="USDA">USDA</option>
+                      <option value="TABELA_PROPRIA_JUAN">Tabela própria</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                    <input type="number" placeholder="Porção (g)" value={a.porcaoReferenciaG} onChange={(e) => handleAlimentoChange(index, 'porcaoReferenciaG', e.target.value)} className="p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                    <input type="number" placeholder="Proteína (g)" value={a.proteinaG} onChange={(e) => handleAlimentoChange(index, 'proteinaG', e.target.value)} className="p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                    <input type="number" placeholder="Carboidrato (g)" value={a.carboidratoG} onChange={(e) => handleAlimentoChange(index, 'carboidratoG', e.target.value)} className="p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                    <input type="number" placeholder="Lipídeos (g)" value={a.lipideosG} onChange={(e) => handleAlimentoChange(index, 'lipideosG', e.target.value)} className="p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                    <input type="number" placeholder="Fibras (g)" value={a.fibrasG} onChange={(e) => handleAlimentoChange(index, 'fibrasG', e.target.value)} className="p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                    <input type="number" placeholder="Calorias (kcal)" value={a.caloriasKcal} onChange={(e) => handleAlimentoChange(index, 'caloriasKcal', e.target.value)} className="p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Observações (opcional)"
+                    value={a.observacoes}
+                    onChange={(e) => handleAlimentoChange(index, 'observacoes', e.target.value)}
+                    className="w-full p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+              ))}
+              <button
+                onClick={addAlimento}
+                className="w-full py-3 border-2 border-dashed border-slate-300 text-slate-500 font-medium rounded-xl hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all flex items-center justify-center gap-2"
+              >
+                <Plus size={18} />
+                Adicionar alimento
+              </button>
+            </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Qual fórmula você usa pra calcular TMB (Taxa de Metabolismo Basal)? Escreva a fórmula exata.
-                </label>
-                <textarea 
-                  name="tmbFormula"
-                  value={formData.tmbFormula}
-                  onChange={handleInputChange}
-                  rows={3} 
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                  placeholder="Ex: Harris-Benedict revisada por Roza e Shizgal..."
-                />
+            {/* 1b. Fórmula de TMB */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Flame size={18} className="text-orange-600" />
+                <h3 className="font-semibold text-slate-700">Fórmula de TMB (Taxa de Metabolismo Basal)</h3>
               </div>
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Fórmula padrão</label>
+                  <select
+                    value={tmbConfig.formulaPadrao}
+                    onChange={(e) => handleTmbConfigChange('formulaPadrao', e.target.value)}
+                    className="w-full p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                  >
+                    <option value="mifflin">Mifflin-St Jeor</option>
+                    <option value="harris_benedict">Harris-Benedict (Roza & Shizgal)</option>
+                    <option value="katch_mcardle">Katch-McArdle</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Fatores de atividade (multiplicador da TMB)</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    <input type="number" step="0.01" placeholder="Sedentário" value={tmbConfig.sedentario} onChange={(e) => handleTmbConfigChange('sedentario', e.target.value)} className="p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                    <input type="number" step="0.01" placeholder="Leve" value={tmbConfig.leve} onChange={(e) => handleTmbConfigChange('leve', e.target.value)} className="p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                    <input type="number" step="0.01" placeholder="Moderado" value={tmbConfig.moderado} onChange={(e) => handleTmbConfigChange('moderado', e.target.value)} className="p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                    <input type="number" step="0.01" placeholder="Intenso" value={tmbConfig.intenso} onChange={(e) => handleTmbConfigChange('intenso', e.target.value)} className="p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                    <input type="number" step="0.01" placeholder="Muito intenso" value={tmbConfig.muitoIntenso} onChange={(e) => handleTmbConfigChange('muitoIntenso', e.target.value)} className="p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Ajuste calórico por objetivo (kcal)</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input type="number" placeholder="Emagrecimento (ex: -500)" value={tmbConfig.emagrecimentoKcal} onChange={(e) => handleTmbConfigChange('emagrecimentoKcal', e.target.value)} className="p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                    <input type="number" placeholder="Hipertrofia (ex: +350)" value={tmbConfig.hipertrofiaKcal} onChange={(e) => handleTmbConfigChange('hipertrofiaKcal', e.target.value)} className="p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                  </div>
+                </div>
+              </div>
+            </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Você ajusta a TMB de forma diferente pra Atleta / Clínico Geral / Estética? Como?
-                </label>
-                <textarea 
-                  name="tmbAdjustments"
-                  value={formData.tmbAdjustments}
-                  onChange={handleInputChange}
-                  rows={4} 
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                  placeholder="Ex: Para atletas multiplico pelo fator de atividade 1.5 a 1.9 dependendo do..."
-                />
+            {/* 1c. Micronutrientes */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Pill size={18} className="text-purple-600" />
+                <h3 className="font-semibold text-slate-700">Micronutrientes e suplementos (conduta clínica)</h3>
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Orientações gerais de micronutrientes e hidratação que você costuma passar.
-                </label>
-                <textarea 
-                  name="microGuidelines"
-                  value={formData.microGuidelines}
-                  onChange={handleInputChange}
-                  rows={4} 
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                  placeholder="Ex: Mínimo de 35ml a 40ml de água por kg de peso. Foco em magnésio e..."
-                />
-              </div>
+              {micronutrientes.map((m, index) => (
+                <div key={index} className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 relative group">
+                  {micronutrientes.length > 1 && (
+                    <button
+                      onClick={() => removeMicro(index)}
+                      className="absolute -top-3 -right-3 p-2 bg-white text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full shadow-md transition-all opacity-0 group-hover:opacity-100"
+                      title="Remover"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                  <div className="grid grid-cols-2 gap-3">
+                    <input type="text" placeholder="Nutriente/suplemento (ex: Vitamina D3)" value={m.nutriente} onChange={(e) => handleMicroChange(index, 'nutriente', e.target.value)} className="p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                    <input type="text" placeholder="Dosagem de referência (ex: 5g/dia)" value={m.dosagemReferencia} onChange={(e) => handleMicroChange(index, 'dosagemReferencia', e.target.value)} className="p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                  </div>
+                  <input type="text" placeholder="Alimentos-fonte (separados por vírgula)" value={m.alimentosFontes} onChange={(e) => handleMicroChange(index, 'alimentosFontes', e.target.value)} className="w-full p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                  <textarea rows={2} placeholder="Conduta clínica do Juan" value={m.condutaClinicaJuan} onChange={(e) => handleMicroChange(index, 'condutaClinicaJuan', e.target.value)} className="w-full p-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                </div>
+              ))}
+              <button
+                onClick={addMicro}
+                className="w-full py-3 border-2 border-dashed border-slate-300 text-slate-500 font-medium rounded-xl hover:border-purple-400 hover:text-purple-600 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
+              >
+                <Plus size={18} />
+                Adicionar micronutriente/suplemento
+              </button>
             </div>
           </section>
 
